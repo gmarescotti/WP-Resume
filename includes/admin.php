@@ -201,6 +201,10 @@ class WP_Resume_Admin {
 
 		//build our own section taxonomy selector using radios rather than checkboxes
 		//We use the same callback for both taxonomies and just pass the taxonomy type as an argument
+		add_meta_box( 'wp_resume_linkedindiv', __('Linkedin', 'wp-resume'), array( &$this, 'linkedin_box' ), 'wp_resume_position', 'side', 'low');
+
+		//build our own section taxonomy selector using radios rather than checkboxes
+		//We use the same callback for both taxonomies and just pass the taxonomy type as an argument
 		add_meta_box( 'wp_resume_sectiondiv', __('Section', 'wp-resume'), array( &$this, 'taxonomy_box' ), 'wp_resume_position', 'side', 'low', array('type'=>'wp_resume_section') );
 
 		//same with orgs
@@ -271,6 +275,14 @@ class WP_Resume_Admin {
 	 * Position metabox callback
 	 * @param obj $post the post object
 	 */
+	function linkedin_box($post) {
+		$this->parent->template->linkedin_box( compact( 'post' ) );
+	}
+
+	/**
+	 * Position metabox callback
+	 * @param obj $post the post object
+	 */
 	function order_box($post) {
 		$this->parent->template->order_box( compact( 'post' ) );
 	}
@@ -326,6 +338,7 @@ class WP_Resume_Admin {
 	 */
 	function save_wp_resume_position( $post_id ) {
 
+print_r("JJJJJJJ: ".$_POST."\n");
 		//Verify our nonce, also varifies that we are on the edit page and not updating elsewhere
 		if ( !isset( $_POST['wp_resume_nonce'] ) || !wp_verify_nonce( $_POST['wp_resume_nonce'], 'wp_resume_taxonomy' , 'wp_resume_nonce' ) )
 			return $post_id;
