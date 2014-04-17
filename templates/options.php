@@ -58,10 +58,8 @@
     		<th scope="row"><?php _e('Contact Information', 'wp-resume'); ?></th>
     		<td>
     			<ul class="contact_info_blank" style="display:none;">
-    				<?php $this->parent->template->contact_info_row( array( 'field_id' => '', 'value' => '' ) ); ?>
-    			</ul>
-    			<ul id="contact_info">
-    				<?php if ( isset($user_options['contact_info'] ) && is_array( $user_options['contact_info'] ) ) 
+    				<?php var_dump ($this); $this->parent->template->contact_info_row( array( 'field_id' => '', 'value' => '' ) ); ?></ul>
+    			<ul id="contact_info"> <?php if ( isset($user_options['contact_info'] ) && is_array( $user_options['contact_info'] ) ) 
     					array_walk_recursive($user_options['contact_info'], array( &$this->parent->admin, 'contact_info_row' ) ); ?>
     			</ul>
     			<a href="#" id="add_contact_field">+ <?php _e('Add Field', 'wp-resume'); ?></a><br />

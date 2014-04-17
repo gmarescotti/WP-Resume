@@ -201,10 +201,6 @@ class WP_Resume_Admin {
 
 		//build our own section taxonomy selector using radios rather than checkboxes
 		//We use the same callback for both taxonomies and just pass the taxonomy type as an argument
-		add_meta_box( 'wp_resume_linkedindiv', __('Linkedin', 'wp-resume'), array( &$this, 'linkedin_box' ), 'wp_resume_position', 'side', 'low');
-
-		//build our own section taxonomy selector using radios rather than checkboxes
-		//We use the same callback for both taxonomies and just pass the taxonomy type as an argument
 		add_meta_box( 'wp_resume_sectiondiv', __('Section', 'wp-resume'), array( &$this, 'taxonomy_box' ), 'wp_resume_position', 'side', 'low', array('type'=>'wp_resume_section') );
 
 		//same with orgs
@@ -270,14 +266,6 @@ class WP_Resume_Admin {
 		exit();
 	}
 
-
-	/**
-	 * Position metabox callback
-	 * @param obj $post the post object
-	 */
-	function linkedin_box($post) {
-		$this->parent->template->linkedin_box( compact( 'post' ) );
-	}
 
 	/**
 	 * Position metabox callback
@@ -428,8 +416,15 @@ print_r("JJJJJJJ: ".$_POST."\n");
 	function menu() {
 
 		add_submenu_page( 'edit.php?post_type=wp_resume_position', __('Resume Options', 'wp-resume'), __('Options', 'wp-resume'), 'edit_posts', 'wp_resume_options', array( &$this, 'options' ) );
-	}
 
+		add_submenu_page( 
+		   'edit.php?post_type=wp_resume_position', 
+		   __('Linkedin', 'wp-resume'), __('Linkedin','wp-resume'), 
+		   'edit_posts', 
+		   'wp_resume_linkedin',
+		   array(&$this, 'linkedin')
+	       	); 
+	}
 
 	/**
 	 * Valdidates options submission data and stores position order
@@ -552,6 +547,43 @@ print_r("JJJJJJJ: ".$_POST."\n");
 
 	}
 
+
+	/**
+	 * Creates the linkedin sub-panel
+	 * use options table as for options()
+	 */
+	function linkedin() {
+		global $wpdb;
+
+		//Pull the existing options from the DB
+		$options = $this->parent->options->get_options();
+
+		//set up the current author
+		$authors = get_users( array( 'blog_id' => $GLOBALS['blog_id'] ) );
+
+		if ( !current_user_can('edit_others_resume') ) {
+			$user = wp_get_current_user();
+			$current_author = $user->ID;
+		} else if ( sizeof($authors) == 1 ) {
+				//if there's only one author, that's our author
+				$current_author = $authors[0]->ID;
+			} else if ( isset($_GET['user'] ) ) {
+				//if there's multiple authors, look for post data from author drop down
+				$current_author = $_GET['user'];
+			} else {
+			//otherwise, assume the current user
+			$current_user = wp_get_current_user();
+			$current_author = $current_user->ID;
+		}
+
+
+		$user_options = $this->parent->options->get_user_options( (int) $current_author );
+
+		var_dump ($current_author);
+
+		$this->parent->template->linkedin( compact( 'user_options', 'authors', 'current_author', 'options' ) );
+
+	}
 
 	/**
 	 * Creates the options sub-panel
@@ -809,6 +841,10 @@ print_r("JJJJJJJ: ".$_POST."\n");
 	 */
 	function contact_info_row( $value, $field_id ) {
 		$this->parent->template->contact_info_row( compact( 'field_id', 'value' ) );
+	}
+
+	function linkedin_row( $value, $field_id ) {
+		$this->parent->template->linkedin_row( compact( 'field_id', 'value' ) );
 	}
 
 
