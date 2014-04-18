@@ -4,6 +4,9 @@
  * @author Benjamin J. Balter <ben@balter.com>
  * @package WP_Resume
  */
+
+require_once dirname( __FILE__ ) . '/wp-linkedin.php';
+
 class WP_Resume_Admin {
 
 	private $parent;
@@ -326,7 +329,8 @@ class WP_Resume_Admin {
 	 */
 	function save_wp_resume_position( $post_id ) {
 
-print_r("JJJJJJJ: ".$_POST."\n");
+	   file_put_contents("/tmp/GIULIOMARESCOTTILOG.txt", print_r($_POST, true));
+
 		//Verify our nonce, also varifies that we are on the edit page and not updating elsewhere
 		if ( !isset( $_POST['wp_resume_nonce'] ) || !wp_verify_nonce( $_POST['wp_resume_nonce'], 'wp_resume_taxonomy' , 'wp_resume_nonce' ) )
 			return $post_id;
@@ -423,8 +427,9 @@ print_r("JJJJJJJ: ".$_POST."\n");
 		   'edit_posts', 
 		   'wp_resume_linkedin',
 		   array(&$this, 'linkedin')
-	       	); 
+	       	);
 	}
+
 
 	/**
 	 * Valdidates options submission data and stores position order
@@ -547,6 +552,92 @@ print_r("JJJJJJJ: ".$_POST."\n");
 
 	}
 
+	/**
+	 * Valdidates options submission data and stores position order
+	 * @since 1.5
+	 * @params array $data post data
+	 * @returns array of validated data (without position order)
+	 */
+	function options_validate_linkedin($data) {
+
+	   //make sure we're POSTing
+	   if ( empty($_POST) )
+	      return $data;
+
+	   //grab the existing options, we must hand WP back a complete option array
+	   $options = $this->parent->options->get_options();
+
+	   //figure out what user we are acting on
+	   global $wpdb;
+	   $authors =  get_users( array( 'blog_id' => $GLOBALS['blog_id'] ) );
+
+	   if ( !current_user_can('edit_others_resume') ) {
+
+	      $current_author = get_current_user_id();
+
+	   } else if ( sizeof($authors) == 1 ) {
+
+	      //if there is only one user in the system, it's gotta be him
+	      $current_author = $authors[0]->ID;
+
+	   } else if ( $_POST['old_user'] != $_POST['user'] ) {
+
+	      //if this is an auto save as a result of the author dropdown changing,
+	      //save as old author, not author we're moving to
+	      $current_author = $_POST['old_user'];
+
+	      //Because we post to options.php and then get redirected,
+	      //trick WP into appending the user as a parameter so we can update the dropdown
+	      //goes through wp_safe_redirect, so no need to escape, right?
+	      $_REQUEST['_wp_http_referer'] .= '&user=' . $_POST['user'];
+
+	   } else {
+
+	      //if this is a normal submit, just grab the author from the dropdown
+	      $current_author = $_POST['user'];
+
+	   }
+
+	   $user_options = $this->parent->options->get_user_options( (int) $current_author );
+
+	   store_experience_in_post(
+		/* $section */ 2, 
+		/* $org */ 3, 
+		/* $from */ 'January 2010', 
+		/* $to */ 'May 2014', 
+		/* $title */ '<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
+		/* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lòavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
+	   );
+
+
+	   $user_options['linkedin_link1'] = wp_filter_nohtml_kses( $data['linkedin_link1'] );
+	   $user_options['linkedin_link2'] = wp_filter_nohtml_kses( $data['linkedin_link2'] );
+
+	   if ( current_user_can( 'manage_options' ) ) {
+	      //move site-wide fields to output array
+	      $fields = array( 'fix_ie', 'rewrite', 'hide-title' );
+
+	      foreach ($fields as $field)
+		 $options[$field] = (int) $data[$field];
+
+	      $options = $this->parent->api->apply_filters( 'options', $options );
+	      $this->parent->options->set_options( $options );
+
+	      flush_rewrite_rules();
+	   }
+
+	   //store usermeta
+	   $user = get_userdata( $current_author );
+	   $this->parent->options->set_user_options( $user_options,  $user->ID );
+
+	   $this->parent->cache->delete(  $user->user_nicename . '_sections');
+	   $this->parent->cache->delete(  $user->user_nicename . '_sections_hide_empty' );
+	   $this->parent->cache->delete(  $user->user_nicename . '_resume', 'wp_resume' );
+	   $this->parent->flush_cache();
+
+	   return $options;
+	}
+
 
 	/**
 	 * Creates the linkedin sub-panel
@@ -578,8 +669,6 @@ print_r("JJJJJJJ: ".$_POST."\n");
 
 
 		$user_options = $this->parent->options->get_user_options( (int) $current_author );
-
-		var_dump ($current_author);
 
 		$this->parent->template->linkedin( compact( 'user_options', 'authors', 'current_author', 'options' ) );
 
@@ -789,6 +878,7 @@ print_r("JJJJJJJ: ".$_POST."\n");
 	function admin_init() {
 
 		register_setting( 'wp_resume_options', 'wp_resume_options', array( &$this, 'options_validate' ) );
+		register_setting( 'wp_resume_options_linkedin', 'wp_resume_options_linkedin', array( &$this, 'options_validate_linkedin' ) );
 
 	}
 
@@ -841,10 +931,6 @@ print_r("JJJJJJJ: ".$_POST."\n");
 	 */
 	function contact_info_row( $value, $field_id ) {
 		$this->parent->template->contact_info_row( compact( 'field_id', 'value' ) );
-	}
-
-	function linkedin_row( $value, $field_id ) {
-		$this->parent->template->linkedin_row( compact( 'field_id', 'value' ) );
 	}
 
 

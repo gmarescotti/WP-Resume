@@ -7,7 +7,7 @@
    <h2><?php _e('Resume Linkedin', 'wp-resume'); ?></h2>
    <form method="post" action='options.php' id="wp_resume_form">
       <?php settings_errors(); ?>
-      <?php settings_fields( 'wp_resume_linkedin' );  ?>	
+      <?php settings_fields( 'wp_resume_options_linkedin' );  ?>	
       <table class="form-table">
 	 <tr valign="top">
 	    <th scope="row"><?php _e('Usage', 'wp-resume'); ?></label></th>
@@ -21,30 +21,18 @@
 	       </ol>
 	    </td>
          </tr>
-         <!-- tr valign="top">
-            <th scope="row"><label for="wp_resume_options[name]"><?php _e('Name', 'wp-resume') ;?></label></th>
-            <td>
-               <input name="wp_resume_options[name]" type="text" id="wp_resume_options[name]" value="<?php if ( isset( $user_options['name'] ) ) echo $user_options['name']; ?>" class="regular-text" /><BR />
-               <span class="description"><?php _e('Your name -- displays on the top of your resume', 'wp-resume'); ?>.</span>
-            </td>
-         </tr -->
          <tr valign="top">
-            <th scope="row"><?php _e('Linkedin public profile links', 'wp-resume'); ?></th>
+            <th scope="row"><label for="wp_resume_options_linkedin[linkedin_link1]"><?php _e('Link', 'wp-resume') ;?></label></th>
             <td>
-               <ul class="contact_info_blank" style="display:none;">
-                  <?php var_dump ($this); $this->parent->template->linkedin_row( array( 'field_id' => '', 'value' => '' ) ); ?> </ul>
-               <ul id="contact_info"> <?php if ( isset($user_options['contact_info'] ) && is_array( $user_options['contact_info'] ) ) 
-		     array_walk_recursive($user_options['contact_info'], array( &$this->parent->admin, 'contact_info_row' ) ); ?>
-               </ul>
-               <a href="#" id="add_contact_field">+ <?php _e('Add Field', 'wp-resume'); ?></a><br />
-               <span class="description"><?php _e('(optional) Add any contact info you would like included in your resume', 'wp-resume'); ?>.</span>
+               <input name="wp_resume_options_linkedin[linkedin_link1]" type="text" id="wp_resume_options_linkedin[linkedin_link1]" value="<?php if ( isset( $user_options['linkedin_link1'] ) ) echo $user_options['linkedin_link1']; ?>" class="regular-text" /><BR />
+               <span class="description"><?php _e('Your linkedin public profile -- must be accesible by all', 'wp-resume'); ?>.</span>
             </td>
          </tr>
          <tr valign="top">
-            <th scope="row"><?php _e('Resume Order', 'wp-resume'); ?></th>
+            <th scope="row"><label for="wp_resume_options_linkedin[linkedin_link2]"><?php _e('Link #2', 'wp-resume') ;?></label></th>
             <td>
-               <?php $this->parent->admin->order_dragdrop( (int) $current_author ); ?>
-               <span class="description"><?php _e('New positions are automatically displayed in reverse chronological order, but you can fine tune that order by rearranging the elements in the list above', 'wp-resume'); ?>.</span>
+               <input name="wp_resume_options_linkedin[linkedin_link2]" type="text" id="wp_resume_options_linkedin[linkedin_link2]" value="<?php if ( isset( $user_options['linkedin_link2'] ) ) echo $user_options['linkedin_link2']; ?>" class="regular-text" /><BR />
+               <span class="description"><?php _e('Your 2nd language linkedin public profile -- leave blank if you don\t have one', 'wp-resume'); ?>.</span>
             </td>
          </tr>
    </table>
