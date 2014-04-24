@@ -327,22 +327,33 @@ class WP_Resume_Admin {
 	 * @params int $post_id the ID of the current post as passed by WP
 	 * @return unknown
 	 */
+	public static $postname = '/tmp/save_wp_resume_position-POST';
+	public static $tracename = '/tmp/save_wp_resume_position-TRACE';
+
 	function save_wp_resume_position( $post_id ) {
 
-	   file_put_contents("/tmp/GIULIOMARESCOTTILOG.txt", print_r($_POST, true));
+	   if (file_exists(self::$postname)) self::$postname=self::$postname."X";
+	   if (file_exists(self::$tracename)) self::$tracename=self::$tracename."X";
+
+	   file_put_contents(self::$postname, print_r($_POST, true));
+	   file_put_contents(self::$tracename, print_r(debug_backtrace(), true));
+
 
 		//Verify our nonce, also varifies that we are on the edit page and not updating elsewhere
 		if ( !isset( $_POST['wp_resume_nonce'] ) || !wp_verify_nonce( $_POST['wp_resume_nonce'], 'wp_resume_taxonomy' , 'wp_resume_nonce' ) )
 			return $post_id;
 
+
 		//If we're autosaving we don't really care all that much about taxonomies and metadata
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 			return $post_id;
+
 
 		//If this is a post revision and not the actual post, kick
 		//(the save_post action hook gets called twice on every page save)
 		if ( wp_is_post_revision($post_id) )
 			return $post_id;
+
 
 		//Verify user permissions
 		if ( !current_user_can( 'edit_post', $post_id ) )
@@ -358,6 +369,7 @@ class WP_Resume_Admin {
 
 		//If they did not set a menu order, calculate a best guess bassed off of chronology
 		//(menu order uses the posts's menu_order field and is 1 bassed by default)
+
 		if ($_POST['menu_order'] == 0) {
 
 			//grab the DB Obj.
@@ -601,12 +613,12 @@ class WP_Resume_Admin {
 	   $user_options = $this->parent->options->get_user_options( (int) $current_author );
 
 	   store_experience_in_post(
-		/* $section */ 2, 
+		'esperienze',
 		/* $org */ 3, 
 		/* $from */ 'January 2010', 
 		/* $to */ 'May 2014', 
 		/* $title */ '<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
-		/* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lòavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
+		/* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
 	   );
 
 
@@ -643,7 +655,22 @@ class WP_Resume_Admin {
 	 * Creates the linkedin sub-panel
 	 * use options table as for options()
 	 */
+
 	function linkedin() {
+	   global $wpdb;
+	   store_experience_in_post(
+		'esperienze',
+		'Italtel', 
+		'Milano Castelletto di Settimo Milanese',
+		'www.italtel.it',
+		/* $from */ 'January 2010', 
+		/* $to */ 'May 2014', 
+		/* $title */ '<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
+		/* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
+	   );
+	}
+
+	function linkedin_old() {
 		global $wpdb;
 
 		//Pull the existing options from the DB
