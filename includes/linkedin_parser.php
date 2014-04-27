@@ -289,7 +289,7 @@ if (__FILE__ == realpath($argv[0])) {
    $hresume = new DOM_LINKEDIN();
    $writer = new TestHResumeWriter();
 
-   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
    $hresume->import_xml_file();
    $hresume->parse_hresume($writer);
 }
