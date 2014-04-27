@@ -328,17 +328,7 @@ class WP_Resume_Admin {
 	 * @params int $post_id the ID of the current post as passed by WP
 	 * @return unknown
 	 */
-	public static $postname = '/tmp/save_wp_resume_position-POST';
-	public static $tracename = '/tmp/save_wp_resume_position-TRACE';
-
 	function save_wp_resume_position( $post_id ) {
-
-	   if (file_exists(self::$postname)) self::$postname=self::$postname."X";
-	   if (file_exists(self::$tracename)) self::$tracename=self::$tracename."X";
-
-	   file_put_contents(self::$postname, print_r($_POST, true));
-	   file_put_contents(self::$tracename, print_r(debug_backtrace(), true));
-
 
 		//Verify our nonce, also varifies that we are on the edit page and not updating elsewhere
 		if ( !isset( $_POST['wp_resume_nonce'] ) || !wp_verify_nonce( $_POST['wp_resume_nonce'], 'wp_resume_taxonomy' , 'wp_resume_nonce' ) )

@@ -14,8 +14,10 @@ class WordpressHResumeWriter extends HResumeWriter {
    }
    public function add_experience($hresume_name, $vcalendar_name, $experience_class) {
       $table_section = array();
-      $table_section['profile-experience']='esperienze';
-      assert (array_key_exists($vcalendar_name, $table_section), 'Manca section: '.$vcalendar_name);
+      $table_section['profile-experience']='experiences';
+      if (!array_key_exists($vcalendar_name, $table_section)) {
+         print ('Manca section: '.$vcalendar_name);
+      }
       $section = $table_section[$vcalendar_name];
       $org_name = $experience_class->orgName;
       $org_location = $experience_class->location;

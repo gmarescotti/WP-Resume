@@ -109,8 +109,12 @@ abstract class HResumeReader {
 
    public function import_xml_file() {
       $ext = pathinfo($this->xmlfile);
-      assert (array_key_exists('extension', $ext) && $ext['extension']=='xml', "Solo file xml prego: $this->xmlfile\n");
-      assert (file_exists($this->xmlfile), "File does not exists: $this->xmlfile\n");
+      if (!array_key_exists('extension', $ext) || $ext['extension']!='xml') {
+         print ("Solo file xml prego: $this->xmlfile\n");
+      }
+      if (!file_exists($this->xmlfile))  {
+         print ("File does not exists: $this->xmlfile\n");
+      }
       
       $this->dom = new DOMDocument();
 
@@ -197,25 +201,33 @@ class DOM_LINKEDIN extends HResumeReader {
    // #hresume/#vcalendar/#vcard
    public function get_all_hresumes() {
       $hresumes=$this->xpath->query("//*[contains(@class,'hresume')]");
-      assert($hresumes->length>0, "Non sono stati trovati hresume!");
+      if ($hresumes->length<=0) {
+         print ("Non sono stati trovati hresume!");
+      }
       return $hresumes;
    }
 
    public function get_all_vcalendars($hresume) {
       $tmp_vcalendars = $this->xpath->query(".//*[contains(@class,'vcalendar')]", $hresume);
       $vcalendars = array();
-      assert ($tmp_vcalendars->length>0, "Non non stati trovati vcalendars!");
+      if ($tmp_vcalendars->length<=0) {
+         print ("Non non stati trovati vcalendars!");
+      }
       foreach ($tmp_vcalendars as $vcal) {
          if ($this->is_valid_vcalendar($vcal))
             $vcalendars[]=$vcal;
       }
-      assert (count($vcalendars)>0, "Non non stati trovati vcalendars validi!");
+      if (count($vcalendars)<=0) {
+         print ("Non non stati trovati vcalendars validi!");
+      }
       return $vcalendars;
    }
 
    public function get_all_vcards($vcalendar) {
       $vcards = $this->xpath->query(".//*[contains(@class, 'vcard')]", $vcalendar);
-      assert ($vcards->length >0, "Non sono stati trovate vcards!");
+      if ($vcards->length <=0) {
+         print ("Non sono stati trovate vcards!");
+      }
       return $vcards;
    }
 
@@ -244,7 +256,9 @@ class DOM_LINKEDIN extends HResumeReader {
 	    $node = $this->xpath->query(".//*[contains(concat(' ',@class,' '), ' $key ')]", $vcard);
 	    if ($node->length>0) break;
 	 }
-	 assert ($node->length>0, "vcard non contiene div# '$key'!");
+	 if ($node->length<=0) {
+        print ("vcard non contiene div# $key!");
+     }
 
 	 // print ("NNN:".$node->item(0)->nodeName."\n");
 	 $ref = trim($node->item(0)->textContent);
@@ -253,9 +267,13 @@ class DOM_LINKEDIN extends HResumeReader {
 
    public function get_info_for_hresume($hresume) {
       $vcard = $this->xpath->query(".//*[contains(concat(' ',@class,' '), ' contact ')]", $hresume);
-      assert ($vcard->length>0, "hresume non contiene <contact>!");
+      if ($vcard->length<=0) {
+         print ("hresume non contiene <contact>!");
+      }
       $fullname = $this->xpath->query('.//*[@class="full-name"]', $vcard->item(0));
-      assert ($fullname->length>0, "vcard non contiene <full-name>!");
+      if ($fullname->length<=0) { 
+         print ("vcard non contiene <full-name>!");
+      }
       return $fullname->item(0)->textContent;
    }
 
@@ -289,7 +307,7 @@ if (__FILE__ == realpath($argv[0])) {
    $hresume = new DOM_LINKEDIN();
    $writer = new TestHResumeWriter();
 
-   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
    $hresume->import_xml_file();
    $hresume->parse_hresume($writer);
 }
