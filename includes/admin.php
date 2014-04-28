@@ -652,7 +652,7 @@ class WP_Resume_Admin {
 	   $hresume = new DOM_LINKEDIN();
 	   $writer = new WordpressHResumeWriter();
 
-	   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+	   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
 	   $hresume->import_xml_file();
 	   $hresume->parse_hresume($writer);
 

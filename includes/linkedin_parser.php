@@ -192,10 +192,94 @@ class DOM_LINKEDIN extends HResumeReader {
 
    public $public_profile_url;
 
+   private function alter_file_get_contents() {
+      print_line("\n********A basic user profile call********");
+      $api_url = "http://api.linkedin.com/v1/people/~";
+      $oauth->fetch($api_url, null, OAUTH_HTTP_METHOD_GET);
+      $response = $oauth->getLastResponse(); // just a sample of how you would get the response
+      print_response($oauth);
+   }
+
+   private function pp_alter_file_get_contents($url) {
+
+      $this->li();
+      $curl = curl_init();
+
+      curl_setopt($curl, CURLOPT_URL, $url);
+      curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+      curl_setopt($curl, CURLOPT_HEADER, false);
+   
+      $data = curl_exec($curl);
+      curl_close($curl);
+
+      return $data;
+   }
+
+   private function oo_alter_file_get_contents($url) {
+
+      if( ini_get('safe_mode') ){
+	 // Do it the safe mode way
+	 print ("SAFE MODE!<br/>");
+      }else{
+	 // Do it the regular way
+	 print ("UN-SAFE MODE!<br/>");
+      }
+
+      // phpinfo();
+      $curl = curl_init();
+
+      // $url = "https://www.linkedin.com/secure/login";
+      // $POSTFIELDS = 'session_key=balasun08@gmail.com&session_password=balasundar&session_login=&session_rikey=invalid key';
+      // $reffer = "https://www.linkedin.com";
+      $agent = "Mozilla/5.0 (Windows; U; Windows NT 5.0; en-US; rv:1.4) Gecko/20030624 Netscape/7.1 (ax)";
+      // $cookie_file_path = "tmp/cookie.txt"; 
+
+
+      curl_setopt($curl, CURLOPT_URL, $url);
+      // curl_setopt($curl, CURLOPT_USERAGENT, $agent);
+      // curl_setopt($curl, CURLOPT_POST, 1);
+      // curl_setopt($curl, CURLOPT_POSTFIELDS,$POSTFIELDS);
+
+      curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+      // curl_setopt($curl, CURLOPT_REFERER, $reffer);
+      // curl_setopt($curl, CURLOPT_COOKIEFILE, $cookie_file_path);
+      // curl_setopt($curl, CURLOPT_COOKIEJAR, $cookie_file_path);
+      curl_setopt($curl, CURLOPT_HEADER, true);
+      curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+      curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+      curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+      curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+      // curl_setopt($curl, CURLOPT_URL, $url);
+      // curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+      // curl_setopt($curl, CURLOPT_HEADER, false);
+   
+      $data = curl_exec($curl);
+      curl_close($curl);
+
+      return $data;
+   }
+
    public function download_xml_from_internet($public_profile_url) {
+      print ("================ downloading $public_profile_url =============<br/>");
       $this->public_profile_url = $public_profile_url;
-      $html = file_get_contents($public_profile_url);
-      file_put_contents($this->xmlfile, $html);
+      try {
+	 $html = $this->alter_file_get_contents($public_profile_url);
+      } catch (Exception $e) {
+	 echo 'Caught exception: ',  $e->getMessage(), "<br/>";
+      }
+
+      if (strlen($html) <= 0) {
+	 print ("Error reading url $public_profile_url<br/>");
+      }
+
+      $number_of_bytes_written = file_put_contents($this->xmlfile, $html);
+      if ($number_of_bytes_written == FALSE) {
+	 print ("Error writing linkedin file $this->xmlfile!<br/>");
+      } else {
+	 print ("Wrote $number_of_bytes_written bytes in $this->xmlfile<br/>");
+      }
    }
 
    // #hresume/#vcalendar/#vcard
@@ -307,7 +391,7 @@ if (__FILE__ == realpath($argv[0])) {
    $hresume = new DOM_LINKEDIN();
    $writer = new TestHResumeWriter();
 
-   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
    $hresume->import_xml_file();
    $hresume->parse_hresume($writer);
 }

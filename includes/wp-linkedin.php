@@ -32,7 +32,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 
       // private function store_experience_in_post( $section, $org_name, $org_location, $org_link, $from, $to, $title, $details) {
 
-      print('ciao mondo!<br/>');
+      print('================ new position ===================<br/>');
 
       $section_term = get_term_by ('slug', $section, 'wp_resume_section', 'ARRAY_A');
 
@@ -66,7 +66,9 @@ class WordpressHResumeWriter extends HResumeWriter {
 
       $postid = wp_insert_post( $_POST, true );
       var_dump($postid);
+      print "<br/>";
       var_dump($_POST);
+      print "<br/>";
    }
 
    private function store_new_organization($org, $location, $website) {
@@ -88,21 +90,30 @@ class WordpressHResumeWriter extends HResumeWriter {
 	 print('Organization added ['.$org.']</br>');
       }
       var_dump($ret);
+      print "<br/>";
       return $ret;
    }
 
    private function delete_all_positions() {
       //loop through posts
-      $args = array(
+      $all_posts = get_posts(
+	 array(
 	    'post_type'         => 'wp_resume_position',
 	    'orderby'           => 'menu_order',
 	    'order'             => 'ASC',
 	    'numberposts'       => -1,
-	    'wp_resume_section' => 'esperienze',
-	    );
+	    'wp_resume_section' => 'experiences',
+	 )
+      );
 
-      foreach (get_posts( $args ) as $post) {
+      if (sizeof($all_posts) <= 0) {
+	 print ("No posts found with wp_resume_section=experiences<br/>");
+      }
+
+      print ("================ removing all position =================<br/>");
+      foreach ($all_posts as $post) {
 	 wp_delete_post( $post->ID, true );
+	 print ("Removed post $post->post_title<br/>");
       }
 
       foreach (get_terms('wp_resume_organization', 'hide_empty=0') as $term) {
