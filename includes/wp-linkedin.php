@@ -6,11 +6,14 @@ require_once dirname( __FILE__ ) . '/linkedin_parser.php';
 
 class WordpressHResumeWriter extends HResumeWriter {
 
+   private $menu_order;
+
    public function add_hresume($hresume_name) {
       $this->delete_all_positions();
    }
    public function add_vcalendar($hresume_name, $vcalendar_name) {
       // profile-experiences -> esperienze
+      $this->menu_order = 1;
    }
    public function add_experience($hresume_name, $vcalendar_name, $experience_class) {
       $table_section = array();
@@ -54,7 +57,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 	    'comment_status' 	=> 'closed',
 	    'ping_status' 		=> 'closed',
 	    'from'			=> $from,
-	    'menu_order' 		=> 0,
+	    'menu_order' 		=> $this->menu_order++,
 	    'to'			=> $to,
 	    'wp_resume_section' 	=> (int)$section_term['term_id'],
 	    'wp_resume_organization' => (int)$org_term['term_id'],
