@@ -59,6 +59,14 @@ Dati della struttura WORDPRESS da replicare nel template vcard:
 assert_options(ASSERT_BAIL, 1); // terminate execution on failed assertions
 
 class Experience { 
+   public $id;
+   public $language;
+
+   public function __construct($id, $language) {
+      $this->id = $id;
+      $this->language = $language;
+   }
+
    // VEVENT
    public $orgName;	// COMPANY NAME
    public $href; 	// SOLO WORDPRESS
@@ -70,6 +78,8 @@ class Experience {
    public $dtstart; // <DATA INIZIO> (mese anno)
    public $dtend;   // <DATA FINE> (mese anno)
    public $details; // <DESCRIZIONE ATTIVITA>
+
+   public Experience &$next = null;
 
    public function __toString() {
       return 
@@ -87,45 +97,92 @@ class Experience {
 
 abstract class HResumeWriter {
 
-   abstract protected function add_hresume($hresume);
-   abstract protected function add_vcalendar($hresume, $vcalendar);
-   abstract protected function add_experience($hresume, $vcalendar, $experience);
+   abstract protected function added_hresume($resume_name);
+   abstract protected function added_vcalendar($resume_name, $calendar_name);
+   abstract protected function added_experience($resume_name, $calendar_name, Experience &$experience);
+
+   abstract protected function merge_experiences(Experience &$base, Experience &$tobemerged);
+   abstract protected function upload();
+
+   public $resumes = array();
+   public $experience_index;
+
+   function add_hresume($resume_name) {
+      // if present same CV (mame surname) => it is another language!
+      // we will merge nested info
+      if (!array_key_exists($resume_name, $this->resumes)) {
+	 $this->resumes[$resume_name] = array();
+      }
+      $self->added_hresume($resume_name);
+      return $this->resumes[$resume_name];
+   }
+
+   function add_vcalendar($resume_name, $calendar_name) {
+      $resume = &$this->resumes[$resume_name];
+      if (!array_key_exists($calendar_name, $resume)) {
+	 $resume[$calendar_name] = array();
+      }
+      $self->added_vcalendar($resume_name, $calendar_name);
+      return $resume[$calendar_name];
+   }
+
+   function add_experience($resume_name, $calendar_name, Experience &$experience) {
+      $resume = &$this->resumes[$resume_name];
+      $calendar = &$resume[$calendar_name];
+      if (array_key_exists($experience->id, $calendar) {
+	 // MERGE for languages!
+	 $self->merge_experiences($experience, $calendar[$experience->id]);
+      } else {
+	 $calendar[$experience->id] = $experience;
+      }
+      $self->added_experience($resume_name, $calendar_name, $experience);
+   }
+
+   public function __toString() {
+      $ret = "";
+      foreach ($this->resumes as $name=>$resume) {
+	 $ret .= "NEW RESUME OF $name\n";
+	 foreach ($resume as $name=>$calendar) {
+	    $ret .= "  CALENDAR FOR $name\n";
+	    foreach ($calendar as $experience) {
+	       $ret.= "    --------------------------------\n";
+	       foreach (split("\n", $experience->__toString()) as $exp_line) {
+		  $ret.= "    ".$exp_line."\n";
+	       }
+	    }
+	 }
+      }
+      return $ret;
+   }
+
 };
 
 abstract class HResumeReader {
    public $xmlfile_base;
 
-   public $dom;
-   public $xpath;
+   public $doms = array(); // array of doms indexed by languages (i.e. 'en')
 
    public function __construct() {
-      $this->xmlfile = dirname( __FILE__ ).'/linkedin.xml';
+      // $this->xmlfile = dirname( __FILE__ ).'/linkedin.xml';
    }
 
-   // public function __construct($xmlfile) {
-      // $this->xmlfile = $xmlfile;
-      // import_xml_file($xmlfile);
-   // }
+   public function import_xml_file($xmlfile) {
+      $ext = pathinfo($xmlfile);
 
-   public function import_xml_file() {
-      $ext = pathinfo($this->xmlfile);
-      if (!array_key_exists('extension', $ext) || $ext['extension']!='xml') {
-         print ("Solo file xml prego: $this->xmlfile\n");
-      }
-      if (!file_exists($this->xmlfile))  {
-         print ("File does not exists: $this->xmlfile\n");
+      if (!file_exists($xmlfile))  {
+         exit ("File does not exists: $xmlfile\n");
       }
       
-      $this->dom = new DOMDocument();
+      $dom = new DOMDocument();
 
       $save_rep = error_reporting();
       error_reporting(E_ERROR);
-      // $this->dom->import_xml_file($this->xmlfile);
-      $this->dom->loadHTML(file_get_contents($this->xmlfile));
-      $this->dom->loadXML($this->dom->saveXML());
+
+      $dom->loadHTML(file_get_contents($xmlfile));
+      $dom->loadXML($dom->saveXML());
       error_reporting($save_rep);
 
-      $this->xpath = new DOMXpath($this->dom);
+      array_push($this->doms, $dom);
    }
 
    abstract protected function get_all_hresumes();
@@ -134,10 +191,9 @@ abstract class HResumeReader {
 
    abstract protected function get_info_for_hresume($hresume);
    abstract protected function get_info_for_vcalendar($vcalendar);
-   // abstract protected function get_info_for_vcard($vcalendar);
+   abstract protected function get_info_for_experience($hresume);
 
    abstract protected function read_data(DOMNode $vcard, Experience &$experience);
-   // abstract protected function write_data(DOMNode &$vcalendar, Experience $experience);
 
    public function parse_hresume(HResumeWriter &$hrs) {
 
@@ -172,18 +228,16 @@ abstract class HResumeReader {
 	 foreach ($this->get_all_vcalendars($hresume) as $vcalendar) {
 	    $vcalendar_name = $this->get_info_for_vcalendar($vcalendar);
 	    $hrs->add_vcalendar($hresume_name, $vcalendar_name);
-	    // if (!$this->is_valid_vcalendar($vcalendar)) continue;
+	    $id = 1;
 	    foreach ($this->get_all_vcards($vcalendar) as $vcard) {
-	       // print ($vcard->getNodePath()."\n");
-	       $experience = new Experience;
+	       $experience = new Experience($id++, get_info_for_experience($hresume));
 	       $this->read_data($vcard, $experience);
-	       // $dom_dst->write_data($vcalendar, $experience);
 	       $hrs->add_experience($hresume_name, $vcalendar_name, $experience);
-
-	       // print $experience."<br/>";
 	    }
 	 }
       }
+
+      $hrs->upload();
    }
 
 };
@@ -192,17 +246,22 @@ class DOM_LINKEDIN extends HResumeReader {
 
    public $public_profile_url;
 
-   private function alter_file_get_contents() {
-      print_line("\n********A basic user profile call********");
-      $api_url = "http://api.linkedin.com/v1/people/~";
-      $oauth->fetch($api_url, null, OAUTH_HTTP_METHOD_GET);
-      $response = $oauth->getLastResponse(); // just a sample of how you would get the response
-      print_response($oauth);
+   public function __construct() {
+      parent::__construct();
+      // $this->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+      
+      $profiles_filename = glob(dirname( __FILE__ ) . "/*LinkedIn.html"); // i.e. <Giulio Marescotti ita LinkedIn.html>
+      foreach ($profiles_filename as $profile_filename) {
+	 print("opening file $profile_filename ...<br/>");
+	 $this->import_xml_file($profile_filename);
+      }
+      if (count($profiles_filename) == 0) {
+	 exit("No filename *LinkedIn.html found!<br/>");
+      }
    }
 
-   private function pp_alter_file_get_contents($url) {
+   private function alter_file_get_contents($url) {
 
-      $this->li();
       $curl = curl_init();
 
       curl_setopt($curl, CURLOPT_URL, $url);
@@ -261,56 +320,69 @@ class DOM_LINKEDIN extends HResumeReader {
       return $data;
    }
 
-   public function download_xml_from_internet($public_profile_url) {
+   public function download_xml_from_internet($public_profile_url, $xmlfile) {
       print ("================ downloading $public_profile_url =============<br/>");
       $this->public_profile_url = $public_profile_url;
       try {
 	 $html = $this->alter_file_get_contents($public_profile_url);
       } catch (Exception $e) {
-	 echo 'Caught exception: ',  $e->getMessage(), "<br/>";
+	 exit ('Caught exception: '.  $e->getMessage(). "<br/>");
       }
 
       if (strlen($html) <= 0) {
-	 print ("Error reading url $public_profile_url<br/>");
+	 exit ("Error reading url $public_profile_url<br/>");
       }
 
-      $number_of_bytes_written = file_put_contents($this->xmlfile, $html);
+      $number_of_bytes_written = file_put_contents($xmlfile, $html);
       if ($number_of_bytes_written == FALSE) {
-	 print ("Error writing linkedin file $this->xmlfile!<br/>");
+	 exit ("Error writing linkedin file $xmlfile!<br/>");
       } else {
-	 print ("Wrote $number_of_bytes_written bytes in $this->xmlfile<br/>");
+	 print ("Wrote $number_of_bytes_written bytes in $xmlfile<br/>");
       }
    }
 
    // #hresume/#vcalendar/#vcard
    public function get_all_hresumes() {
-      $hresumes=$this->xpath->query("//*[contains(@class,'hresume')]");
-      if ($hresumes->length<=0) {
-         print ("Non sono stati trovati hresume!");
+      $hresumes = array();
+
+      foreach ($this->doms as $dom) {
+	 $xpath = new DOMXpath($dom);
+	 // $language_str = $this->get_language_from_profile_dom($xpath);
+
+	 foreach ($xpath->query("//*[contains(@class,'hresume')]") as $hresume) {
+	    array_push($hresumes, $hresume);
+	 }
+      }
+      if (count($hresumes)<=0) {
+	 exit ("Non sono stati trovati hresume!");
       }
       return $hresumes;
    }
 
    public function get_all_vcalendars($hresume) {
-      $tmp_vcalendars = $this->xpath->query(".//*[contains(@class,'vcalendar')]", $hresume);
+      $xpath = new DOMXpath($hresume->ownerDocument);
+
+      $tmp_vcalendars = $xpath->query(".//*[contains(@class,'vcalendar')]", $hresume);
       $vcalendars = array();
       if ($tmp_vcalendars->length<=0) {
-         print ("Non non stati trovati vcalendars!");
+         exit ("Non non stati trovati vcalendars!<br/>");
       }
       foreach ($tmp_vcalendars as $vcal) {
          if ($this->is_valid_vcalendar($vcal))
             $vcalendars[]=$vcal;
       }
       if (count($vcalendars)<=0) {
-         print ("Non non stati trovati vcalendars validi!");
+         exit ("Non non stati trovati vcalendars validi!<br/>");
       }
       return $vcalendars;
    }
 
    public function get_all_vcards($vcalendar) {
-      $vcards = $this->xpath->query(".//*[contains(@class, 'vcard')]", $vcalendar);
+      $xpath = new DOMXpath($vcalendar->ownerDocument);
+
+      $vcards = $xpath->query(".//*[contains(@class, 'vcard')]", $vcalendar);
       if ($vcards->length <=0) {
-         print ("Non sono stati trovate vcards!");
+         exit ("Non sono stati trovate vcards!");
       }
       return $vcards;
    }
@@ -322,6 +394,7 @@ class DOM_LINKEDIN extends HResumeReader {
 
    public function read_data(DOMNode $vcard, Experience &$experience) {
       // string $href; 	// SOLO WORDPRESS
+      $xpath = new DOMXpath($vcard->ownerDocument);
 
       // "#dtstamp/dtend" => 	DATA FINE / Presente (mese anno)
       $table_experience=array(
@@ -337,12 +410,12 @@ class DOM_LINKEDIN extends HResumeReader {
       foreach ($table_experience as $keys => &$ref) {
 	 // print ("NNN:".$vcard->nodeName."\n");
 	 foreach (split(",", $keys) as $key) {
-	    $node = $this->xpath->query(".//*[contains(concat(' ',@class,' '), ' $key ')]", $vcard);
+	    $node = $xpath->query(".//*[contains(concat(' ',@class,' '), ' $key ')]", $vcard);
 	    if ($node->length>0) break;
 	 }
 	 if ($node->length<=0) {
-        print ("vcard non contiene div# $key!");
-     }
+	    exit ("vcard non contiene div# $key!");
+	 }
 
 	 // print ("NNN:".$node->item(0)->nodeName."\n");
 	 $ref = trim($node->item(0)->textContent);
@@ -350,50 +423,51 @@ class DOM_LINKEDIN extends HResumeReader {
    }
 
    public function get_info_for_hresume($hresume) {
-      $vcard = $this->xpath->query(".//*[contains(concat(' ',@class,' '), ' contact ')]", $hresume);
+      $xpath = new DOMXpath($hresume->ownerDocument);
+
+      $vcard = $xpath->query(".//*[contains(concat(' ',@class,' '), ' contact ')]", $hresume);
       if ($vcard->length<=0) {
-         print ("hresume non contiene <contact>!");
+         exit ("hresume non contiene <contact>!<br/>");
       }
-      $fullname = $this->xpath->query('.//*[@class="full-name"]', $vcard->item(0));
+      $fullname = $xpath->query('.//*[@class="full-name"]', $vcard->item(0));
       if ($fullname->length<=0) { 
-         print ("vcard non contiene <full-name>!");
+         exit ("vcard non contiene <full-name>!<br/>");
       }
+      // return $fullname->item(0)->textContent.'-'.$this->get_language_from_profile_dom($xpath);
+      // If this value is the same for multiple resume => it will be merged to a different language
       return $fullname->item(0)->textContent;
    }
 
    public function get_info_for_vcalendar($vcalendar) {
       return $vcalendar->parentNode->getAttribute('id');
    }
+
+   public function get_info_for_experience($hresume) {
+      $xpath = new DOMXpath($hresume->ownerDocument);
+
+      $node = $xpath->query("//*[@id='current-locale']");
+      return $node->item(0)->textContent;
+   }
 };
 
 if (__FILE__ == realpath($argv[0])) {
 
    class TestHResumeWriter extends HResumeWriter {
-      // public $experiences = array();
-      // public $vcalendars = array();
-      
-      function add_hresume($hresume_name) {
-         // unset ($this->experiences); $this->experiences = array();
-         // unset ($this->vcalendar); $this->vcalendar = array();
-         print ("HRESUME ".$hresume_name."\n");
-      }
-      function add_vcalendar($hresume_name, $vcalendar_name) {
-	 // array_push($this->vcalendars, $vcalendar);
-         print ("VCALENDAR ".$vcalendar_name."\n");
-      }
-      function add_experience($hresume_name, $vcalendar_name, $experience) {
-	 // array_push($this->experiences, $experience);
-         print ("EXPERIENCE ".$experience."\n");
-      }
+      public function added_hresume($hresume) {}
+      public function added_vcalendar($hresume, $vcalendar) {}
+      public function added_experience($hresume, $vcalendar, Experience &$experience) {}
 
+      public function upload() {}
+      public function merge_experiences(Experience &$base, Experience &$tobemerged) {
+      }
    };
 
-   $hresume = new DOM_LINKEDIN();
+   $hresume = new DOM_LINKEDIN(); // load profiles
    $writer = new TestHResumeWriter();
 
-   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
-   $hresume->import_xml_file();
    $hresume->parse_hresume($writer);
+
+   print ($writer);
 }
 
 ?>
