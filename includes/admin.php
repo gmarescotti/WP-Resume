@@ -648,24 +648,15 @@ class WP_Resume_Admin {
 	 */
 
 	function linkedin() {
-	   global $wpdb;
-	   $hresume = new DOM_LINKEDIN();
-	   $writer = new WordpressHResumeWriter();
+           linkedin_api_test();
 
-	   $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
-	   $hresume->import_xml_file();
-	   $hresume->parse_hresume($writer);
+	   // global $wpdb;
+	   // $hresume = new DOM_LINKEDIN();
+	   // $writer = new WordpressHResumeWriter();
 
-	   /* store_experience_in_post(
-		'esperienze',
-		'Italtel', 
-		'Milano Castelletto di Settimo Milanese',
-		'www.italtel.it',
-		'January 2010', 
-		'May 2014', 
-		'<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
-		'<!--:it-->sviluppare un sistema infallibile per trovare un lavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
-	   ); */
+	   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
+	   // $hresume->import_xml_file();
+	   // $hresume->parse_hresume($writer);
 	}
 
 	function linkedin_old() {
