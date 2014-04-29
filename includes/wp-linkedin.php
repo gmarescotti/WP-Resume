@@ -6,20 +6,25 @@ require_once dirname( __FILE__ ) . '/linkedin_parser.php';
 
 class WordpressHResumeWriter extends HResumeWriter {
 
-   private $menu_order;
-
-   public function add_hresume($hresume_name) {
+   public function __construct() {
+      parent::__construct();
       $this->delete_all_positions();
    }
-   public function add_vcalendar($hresume_name, $vcalendar_name) {
-      // profile-experiences -> esperienze
-      $this->menu_order = 1;
+
+   public function added_hresume($resume_name) { }
+
+   public function added_vcalendar($resume_name, $calendar_name) { }
+
+   public function added_experience($resume_name, $calendar_name, Experience &$experience_class) { }
+
+   public function upload() {
    }
-   public function add_experience($hresume_name, $vcalendar_name, $experience_class) {
+
+   private wrapped_insert_post($vcalendar_name], $experience_class) {
       $table_section = array();
       $table_section['profile-experience']='experiences';
       if (!array_key_exists($vcalendar_name, $table_section)) {
-         print ('Manca section: '.$vcalendar_name);
+         exit ('Manca section: '.$vcalendar_name);
       }
       $section = $table_section[$vcalendar_name];
       $org_name = $experience_class->orgName;
@@ -30,15 +35,12 @@ class WordpressHResumeWriter extends HResumeWriter {
       $title = $experience_class->title;
       $details = $experience_class->details;
 
-      // private function store_experience_in_post( $section, $org_name, $org_location, $org_link, $from, $to, $title, $details) {
-
       print('================ new position ===================<br/>');
 
       $section_term = get_term_by ('slug', $section, 'wp_resume_section', 'ARRAY_A');
 
       if (!$section_term) {
-	 print('no section named '.$section.' found!<br/>');
-	 return;
+	 exit('no section named '.$section.' found!<br/>');
       }
 
       $org_term = get_term_by ('name', $org_name, 'wp_resume_organization', 'ARRAY_A');
@@ -57,7 +59,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 	    'comment_status' 	=> 'closed',
 	    'ping_status' 		=> 'closed',
 	    'from'			=> $from,
-	    'menu_order' 		=> $this->menu_order++,
+	    'menu_order' 		=> $this->experience_index,
 	    'to'			=> $to,
 	    'wp_resume_section' 	=> (int)$section_term['term_id'],
 	    'wp_resume_organization' => (int)$org_term['term_id'],
@@ -118,7 +120,6 @@ class WordpressHResumeWriter extends HResumeWriter {
 
       foreach (get_terms('wp_resume_organization', 'hide_empty=0') as $term) {
 	 $ret = wp_delete_term( $term->term_id, 'wp_resume_organization' );
-	 // var_dump('WP_DELETE_TERM :', $ret);
       }
 
    }

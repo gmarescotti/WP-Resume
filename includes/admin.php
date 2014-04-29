@@ -648,6 +648,7 @@ class WP_Resume_Admin {
 	 */
 
 	function linkedin() {
+<<<<<<< HEAD
            linkedin_api_test();
 
 	   // global $wpdb;
@@ -657,6 +658,15 @@ class WP_Resume_Admin {
 	   // $hresume->download_xml_from_internet('https://www.linkedin.com/pub/giulio-marescotti/5/235/380');
 	   // $hresume->import_xml_file();
 	   // $hresume->parse_hresume($writer);
+=======
+           // linkedin_api_test();
+
+	   global $wpdb;
+	   $hresume = new DOM_LINKEDIN();
+	   $writer = new WordpressHResumeWriter();
+
+	   $hresume->parse_hresume($writer);
+>>>>>>> 9fa8ebe33c2bb85ddac8f42f774a0c75cb3366af
 	}
 
 	function linkedin_old() {
