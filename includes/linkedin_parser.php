@@ -79,7 +79,12 @@ class Experience {
    public $dtend;   // <DATA FINE> (mese anno)
    public $details; // <DESCRIZIONE ATTIVITA>
 
-   public Experience &$next = null;
+   public $next = null;
+   public function &last() {
+      $ret = &$this;
+      while ($ret->next) { $ret = &$ret->next; }
+      return $ret->next;
+   }
 
    public function __toString() {
       return 
@@ -101,11 +106,9 @@ abstract class HResumeWriter {
    abstract protected function added_vcalendar($resume_name, $calendar_name);
    abstract protected function added_experience($resume_name, $calendar_name, Experience &$experience);
 
-   abstract protected function merge_experiences(Experience &$base, Experience &$tobemerged);
    abstract protected function upload();
 
    public $resumes = array();
-   public $experience_index;
 
    function add_hresume($resume_name) {
       // if present same CV (mame surname) => it is another language!
@@ -113,7 +116,7 @@ abstract class HResumeWriter {
       if (!array_key_exists($resume_name, $this->resumes)) {
 	 $this->resumes[$resume_name] = array();
       }
-      $self->added_hresume($resume_name);
+      $this->added_hresume($resume_name);
       return $this->resumes[$resume_name];
    }
 
@@ -122,20 +125,20 @@ abstract class HResumeWriter {
       if (!array_key_exists($calendar_name, $resume)) {
 	 $resume[$calendar_name] = array();
       }
-      $self->added_vcalendar($resume_name, $calendar_name);
+      $this->added_vcalendar($resume_name, $calendar_name);
       return $resume[$calendar_name];
    }
 
    function add_experience($resume_name, $calendar_name, Experience &$experience) {
       $resume = &$this->resumes[$resume_name];
       $calendar = &$resume[$calendar_name];
-      if (array_key_exists($experience->id, $calendar) {
-	 // MERGE for languages!
-	 $self->merge_experiences($experience, $calendar[$experience->id]);
-      } else {
+      if (!array_key_exists($experience->id, $calendar)) {
 	 $calendar[$experience->id] = $experience;
+      } else {
+	 $last = &$calendar[$experience->id]->last();
+	 $last = $experience;
       }
-      $self->added_experience($resume_name, $calendar_name, $experience);
+      $this->added_experience($resume_name, $calendar_name, $experience);
    }
 
    public function __toString() {
@@ -145,9 +148,12 @@ abstract class HResumeWriter {
 	 foreach ($resume as $name=>$calendar) {
 	    $ret .= "  CALENDAR FOR $name\n";
 	    foreach ($calendar as $experience) {
-	       $ret.= "    --------------------------------\n";
-	       foreach (split("\n", $experience->__toString()) as $exp_line) {
-		  $ret.= "    ".$exp_line."\n";
+	       while ($experience) {
+		  $ret.= "    -------------$experience->language-------------------\n";
+		  foreach (split("\n", $experience->__toString()) as $exp_line) {
+		     $ret.= "    ".$exp_line."\n";
+		  }
+		  $experience = $experience->next;
 	       }
 	    }
 	 }
@@ -230,7 +236,7 @@ abstract class HResumeReader {
 	    $hrs->add_vcalendar($hresume_name, $vcalendar_name);
 	    $id = 1;
 	    foreach ($this->get_all_vcards($vcalendar) as $vcard) {
-	       $experience = new Experience($id++, get_info_for_experience($hresume));
+	       $experience = new Experience($id++, $this->get_info_for_experience($hresume));
 	       $this->read_data($vcard, $experience);
 	       $hrs->add_experience($hresume_name, $vcalendar_name, $experience);
 	    }
@@ -443,10 +449,16 @@ class DOM_LINKEDIN extends HResumeReader {
    }
 
    public function get_info_for_experience($hresume) {
+      static $languages_code=array(
+	 'Italiano' => 'it',
+	 'Inglese'  => 'en'
+      );
       $xpath = new DOMXpath($hresume->ownerDocument);
 
       $node = $xpath->query("//*[@id='current-locale']");
-      return $node->item(0)->textContent;
+      $lang = $node->item(0)->textContent;
+      $lang = $languages_code($lang);
+      return $lang;
    }
 };
 
@@ -458,8 +470,6 @@ if (__FILE__ == realpath($argv[0])) {
       public function added_experience($hresume, $vcalendar, Experience &$experience) {}
 
       public function upload() {}
-      public function merge_experiences(Experience &$base, Experience &$tobemerged) {
-      }
    };
 
    $hresume = new DOM_LINKEDIN(); // load profiles

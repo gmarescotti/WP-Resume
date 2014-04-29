@@ -17,10 +17,23 @@ class WordpressHResumeWriter extends HResumeWriter {
 
    public function added_experience($resume_name, $calendar_name, Experience &$experience_class) { }
 
-   public function upload() {
+   // merge_languages_for_qtranslator_plugin
+   private function upload() {
+      foreach ($this->resumes as $name=>$resume) {
+	 foreach ($resume as $name=>$calendar) {
+	    foreach ($calendar as $experience) {
+	       if ($experience->next==null) : continue; // only 1 lang
+	       $other_experience=$experience;
+	       while ($other_experience->next) {
+		  merge_lang($i18n_experience, $experience->language, $other_experience);
+		  $other_experience = $other_experience->next;
+	       }
+	    }
+	 }
+      }
    }
 
-   private wrapped_insert_post($vcalendar_name], $experience_class) {
+   private resume_insert_post($vcalendar_name], $experience_class) {
       $table_section = array();
       $table_section['profile-experience']='experiences';
       if (!array_key_exists($vcalendar_name, $table_section)) {
