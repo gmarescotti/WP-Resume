@@ -59,13 +59,16 @@ Dati della struttura WORDPRESS da replicare nel template vcard:
 assert_options(ASSERT_BAIL, 1); // terminate execution on failed assertions
 
 class Experience { 
-   public $id;
-   public $language;
+   private $id;
+   private $language;
 
    public function __construct($id, $language) {
       $this->id = $id;
       $this->language = $language;
    }
+
+   public function getID() { return $this->id; }
+   public function getLang() { return $this->language; }
 
    // VEVENT
    public $orgName;	// COMPANY NAME
@@ -79,14 +82,16 @@ class Experience {
    public $dtend;   // <DATA FINE> (mese anno)
    public $details; // <DESCRIZIONE ATTIVITA>
 
-   public $next = null;
-   public function &last() {
-      $ret = &$this;
-      while ($ret->next) { $ret = &$ret->next; }
-      return $ret->next;
-   }
+   public $is_i18n = false;
+
+   // public function &last() {
+   //    $ret = &$this;
+   //    while ($ret->next) { $ret = &$ret->next; }
+   //    return $ret->next;
+   // }
 
    public function __toString() {
+
       return 
 	 "COMPANY NAME: ".$this->orgName."\n".
 	 "href(SOLO WORDPRESS): ".$this->href."\n".
@@ -106,9 +111,14 @@ abstract class HResumeWriter {
    abstract protected function added_vcalendar($resume_name, $calendar_name);
    abstract protected function added_experience($resume_name, $calendar_name, Experience &$experience);
 
+   // abstract protected function merge_i18n_experience(Experience &$dest, Experience $src);
+
    abstract protected function upload();
 
    public $resumes = array();
+
+   public function __construct() {
+   }
 
    function add_hresume($resume_name) {
       // if present same CV (mame surname) => it is another language!
@@ -131,13 +141,41 @@ abstract class HResumeWriter {
 
    function add_experience($resume_name, $calendar_name, Experience &$experience) {
       $resume = &$this->resumes[$resume_name];
-      $calendar = &$resume[$calendar_name];
-      if (!array_key_exists($experience->id, $calendar)) {
-	 $calendar[$experience->id] = $experience;
-      } else {
-	 $last = &$calendar[$experience->id]->last();
-	 $last = $experience;
+
+      if (!array_key_exists($resume, $calendar_name)) { 
+	 $resume[$calendar_name] = array();
       }
+
+      $calendar = &$resume[$calendar_name];
+
+      $calendar[$experience->getLang()] = &$experience;
+
+      // if (!array_key_exists($experience->getID(), $calendar)) {
+
+      //    $calendar[$experience->getID()] = $experience;
+      // } else { // another position with same id => IT IS A DIFFERENT LANGUAGE
+      //    $dest = &$calendar[$experience->getID()];
+
+      //    if ($experience->getLang() == $dest->getLang()) {
+      //       error("duplicate language experience!");
+      //    }
+
+      //    if (!$dest->is_i18n) {
+      //       $copy = clone $dest; // COPY
+
+      //       foreach (get_class_vars(get_class($dest)) as $key => $value) { // RESET DEST!
+      //          $dest->$key = $value; 
+      //       }
+
+      //       // $this->merge_i18n_experience($dest, $copy); // internationalize current experience
+      //       $dest[$copy->language] = $copy;
+      //       $dest->is_i18n = true;
+      //    }
+
+      //    // $this->merge_i18n_experience($dest, $experience);
+      //    $dest[$experience->language] = $experience;
+      // }
+
       $this->added_experience($resume_name, $calendar_name, $experience);
    }
 
@@ -148,12 +186,10 @@ abstract class HResumeWriter {
 	 foreach ($resume as $name=>$calendar) {
 	    $ret .= "  CALENDAR FOR $name\n";
 	    foreach ($calendar as $experience) {
-	       while ($experience) {
-		  $ret.= "    -------------$experience->language-------------------\n";
-		  foreach (split("\n", $experience->__toString()) as $exp_line) {
-		     $ret.= "    ".$exp_line."\n";
-		  }
-		  $experience = $experience->next;
+	       $ret .= "    EXPERIENCE $experience->orgName\n";
+	       // $ret.= $experience->__toString();
+	       foreach (split("\n", $experience->__toString()) as $exp_line) {
+		  $ret.= "      ".$exp_line."\n";
 	       }
 	    }
 	 }
@@ -457,7 +493,7 @@ class DOM_LINKEDIN extends HResumeReader {
 
       $node = $xpath->query("//*[@id='current-locale']");
       $lang = $node->item(0)->textContent;
-      $lang = $languages_code($lang);
+      $lang = $languages_code[$lang];
       return $lang;
    }
 };
@@ -470,6 +506,15 @@ if (__FILE__ == realpath($argv[0])) {
       public function added_experience($hresume, $vcalendar, Experience &$experience) {}
 
       public function upload() {}
+      // public function merge_i18n_experience(Experience &$dest, Experience $src) {
+      //    if ($dest->is_i18n) { $sep=', ';
+      //    } else { $sep=''; }
+
+      //    foreach ($dest as $key => $value) {
+      //       // $dest->$key .= $sep.$src->$key;
+      //       $dest->$key .= '<!--:'.$src->getLang().'-->'.$src->$key.'<!--:-->';
+      //    }
+      // }
    };
 
    $hresume = new DOM_LINKEDIN(); // load profiles

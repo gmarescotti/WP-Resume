@@ -419,6 +419,11 @@ class WP_Resume extends Plugin_Boilerplate_v_1 {
 	function set_org_link( $org, $link ) {
 		$slug = 'wp_resume_organization_link_' . (int) $org;
 		$this->cache->set( $slug, $link );
+		foreach ($_POST as $k=>$p) {
+		   print "$k => $p<br/>";
+		}
+// print_r($_POST);
+exit("ciao");
 		return update_option( $slug, esc_url( $link ) );
 	}
 

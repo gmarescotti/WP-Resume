@@ -15,40 +15,60 @@ class WordpressHResumeWriter extends HResumeWriter {
 
    public function added_vcalendar($resume_name, $calendar_name) { }
 
-   public function added_experience($resume_name, $calendar_name, Experience &$experience_class) { }
+   public function added_experience($resume_name, $calendar_name, Experience &$experience) { }
+
+   private function translate_string($i18n_experience, $param) {
+      if (count($i18n_experience) == 1) {
+	 foreach($i18n_experience as $x) {print ")))))))) $x<br/>";};
+	 print "<br/>";
+	 reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
+	 return key($i18n_experience);
+      }
+      $ret = '';
+      foreach ($i18n_experience as $exp) {
+	 $ret .= '<!--:'.$exp->language.'-->'.$exp->$param.'<!--:-->';
+      }
+      return $ret;
+   }
+
+   // public function merge_i18n_experience(Experience &$dest, Experience $src) {
+   //    foreach (array('title') as $key) {
+   //       $dest->$key .= translate_string($src->getLang(), $src->$key); 
+   //    }
+   // }
 
    // merge_languages_for_qtranslator_plugin
-   private function upload() {
+   public function upload() {
       foreach ($this->resumes as $name=>$resume) {
-	 foreach ($resume as $name=>$calendar) {
-	    foreach ($calendar as $experience) {
-	       if ($experience->next==null) : continue; // only 1 lang
-	       $other_experience=$experience;
-	       while ($other_experience->next) {
-		  merge_lang($i18n_experience, $experience->language, $other_experience);
-		  $other_experience = $other_experience->next;
-	       }
+	 foreach ($resume as $calendar_name=>$calendar) {
+	    foreach ($calendar as $i18n_experience) {
+	       $this->resume_insert_post($calendar_name, $i18n_experience);
 	    }
 	 }
       }
    }
 
-   private resume_insert_post($vcalendar_name], $experience_class) {
+   private function resume_insert_post($vcalendar_name, $i18n_experience) {
       $table_section = array();
       $table_section['profile-experience']='experiences';
+
+      reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
+      $experience = key($i18n_experience);
+
       if (!array_key_exists($vcalendar_name, $table_section)) {
          exit ('Manca section: '.$vcalendar_name);
       }
       $section = $table_section[$vcalendar_name];
-      $org_name = $experience_class->orgName;
-      $org_location = $experience_class->location;
-      $org_link = $experience_class->href;
-      $from = $experience_class->dtstart;
-      $to = $experience_class->dtend;
-      $title = $experience_class->title;
-      $details = $experience_class->details;
+      // $org_name = translate_string($i18n_experience, 'orgName');
+      // $org_location = $experience->location;
+      // $org_link = $experience->href;
+      $from = $experience->dtstart;
+      $to = $experience->dtend;
+print "IIIIII\n";
+      $title = $this->translate_string($i18n_experience, 'title');
+      $details = $this->translate_string($i18n_experience, 'details');
 
-      print('================ new position ===================<br/>');
+      print("================ new position in $org_name ===================<br/>");
 
       $section_term = get_term_by ('slug', $section, 'wp_resume_section', 'ARRAY_A');
 
@@ -59,24 +79,24 @@ class WordpressHResumeWriter extends HResumeWriter {
       $org_term = get_term_by ('name', $org_name, 'wp_resume_organization', 'ARRAY_A');
 
       if (!$org_term) {
-	 $org_term = $this->store_new_organization($org_name, $org_location, $org_link);
+	 $org_term = $this->store_new_organization($i18n_experience);
       }
 
       global $_POST;
       $_POST=array(
-	    'post_title'   	=> $title,
-	    'post_content' 	=> $details,
-	    'post_status'  	=> 'publish',
+	    'post_title'   		=> $title,
+	    'post_content' 		=> $details,
+	    'post_status'  		=> 'publish',
 	    'post_type'   		=> 'wp_resume_position',
-	    'post_excerpt' 	=> '',
-	    'comment_status' 	=> 'closed',
+	    'post_excerpt' 		=> '',
+	    'comment_status' 		=> 'closed',
 	    'ping_status' 		=> 'closed',
 	    'from'			=> $from,
 	    'menu_order' 		=> $this->experience_index,
 	    'to'			=> $to,
 	    'wp_resume_section' 	=> (int)$section_term['term_id'],
-	    'wp_resume_organization' => (int)$org_term['term_id'],
-	    'wp_resume_nonce' 	=> wp_create_nonce('wp_resume_taxonomy' , 'wp_resume_nonce'),
+	    'wp_resume_organization' 	=> (int)$org_term['term_id'],
+	    'wp_resume_nonce' 		=> wp_create_nonce('wp_resume_taxonomy' , 'wp_resume_nonce'),
 	    );
 
       $postid = wp_insert_post( $_POST, true );
@@ -86,13 +106,26 @@ class WordpressHResumeWriter extends HResumeWriter {
       print "<br/>";
    }
 
-   private function store_new_organization($org, $location, $website) {
+   private function store_new_organization($i18n_experience) {
+
+      // $org, $location, $website
+      reset($i18n_experience);
+      $experience = key($i18n_experience);
+  
+      $website = $experience->href; // ONLY 1 SITE!
+      $org = $experience->orgName; // FIRST ORG USED AS SLUG AND NAME
+      $location = $experience->location; // ONLY 1 LOCATION in wordpress 2 in linkein :(
+
       global $_REQUEST;
       $_REQUEST = array(
-	    'org_link' => $website,
 	    'description'=> $location,
 	    'wp_resume_nonce' => wp_create_nonce('wp_resume_org_link' , 'wp_resume_nonce'),
 	    );
+      // 'org_link' => $website,
+
+      foreach ($i18n_experience as $experience) {
+	 $_REQUEST['qtrans_term_'.$experience->language] = $experience->name;
+      }
 
       $ret = wp_insert_term(
 	    $org,
@@ -100,10 +133,13 @@ class WordpressHResumeWriter extends HResumeWriter {
 	    $_REQUEST
 	    );
       if (!$ret) {
-	 print('Organization failed ['.$org.']</br>');
+	 error("Organization failed [$org]</br>");
       } else {
-	 print('Organization added ['.$org.']</br>');
+	 print("Organization succesfully added [$org]</br>");
       }
+
+      set_org_link( $ret, $website );
+
       var_dump($ret);
       print "<br/>";
       return $ret;
@@ -133,6 +169,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 
       foreach (get_terms('wp_resume_organization', 'hide_empty=0') as $term) {
 	 $ret = wp_delete_term( $term->term_id, 'wp_resume_organization' );
+	 print ("Removed organization $term->term_id<br/>");
       }
 
    }
