@@ -141,14 +141,15 @@ abstract class HResumeWriter {
 
    function add_experience($resume_name, $calendar_name, Experience &$experience) {
       $resume = &$this->resumes[$resume_name];
-
-      if (!array_key_exists($resume, $calendar_name)) { 
-	 $resume[$calendar_name] = array();
-      }
-
       $calendar = &$resume[$calendar_name];
 
-      $calendar[$experience->getLang()] = &$experience;
+      if (!array_key_exists($experience->getID(), $calendar)) {
+	 $calendar[$experience->getID()] = array();
+      }
+
+      $i18n_experience = &$calendar[$experience->getID()];
+
+      $i18n_experience[$experience->getLang()] = $experience;
 
       // if (!array_key_exists($experience->getID(), $calendar)) {
 
@@ -185,11 +186,13 @@ abstract class HResumeWriter {
 	 $ret .= "NEW RESUME OF $name\n";
 	 foreach ($resume as $name=>$calendar) {
 	    $ret .= "  CALENDAR FOR $name\n";
-	    foreach ($calendar as $experience) {
-	       $ret .= "    EXPERIENCE $experience->orgName\n";
-	       // $ret.= $experience->__toString();
-	       foreach (split("\n", $experience->__toString()) as $exp_line) {
-		  $ret.= "      ".$exp_line."\n";
+	    foreach ($calendar as $i18n_experience) {
+	       $ret.="      --------------------------\n";
+	       foreach ($i18n_experience as $lang=>$experience) {
+		  $ret .= "      $lang $experience->orgName\n";
+		  foreach (split("\n", $experience->__toString()) as $exp_line) {
+		     $ret.= "      ".$exp_line."\n";
+		  }
 	       }
 	    }
 	 }

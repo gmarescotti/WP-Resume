@@ -4,6 +4,8 @@ require_once dirname( __FILE__ ) . '/linkedin_parser.php';
 
 // wp shell --path=/usr/share/wordpress
 
+define('WP_DEBUG', true);
+
 class WordpressHResumeWriter extends HResumeWriter {
 
    public function __construct() {
@@ -22,11 +24,11 @@ class WordpressHResumeWriter extends HResumeWriter {
 	 foreach($i18n_experience as $x) {print ")))))))) $x<br/>";};
 	 print "<br/>";
 	 reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
-	 return key($i18n_experience);
+	 return $i18n_experience[key($i18n_experience)];
       }
       $ret = '';
       foreach ($i18n_experience as $exp) {
-	 $ret .= '<!--:'.$exp->language.'-->'.$exp->$param.'<!--:-->';
+	 $ret .= '<!--:'.$exp->getLang().'-->'.$exp->$param.'<!--:-->';
       }
       return $ret;
    }
@@ -53,7 +55,7 @@ class WordpressHResumeWriter extends HResumeWriter {
       $table_section['profile-experience']='experiences';
 
       reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
-      $experience = key($i18n_experience);
+      $experience = $i18n_experience[key($i18n_experience)];
 
       if (!array_key_exists($vcalendar_name, $table_section)) {
          exit ('Manca section: '.$vcalendar_name);
@@ -64,23 +66,17 @@ class WordpressHResumeWriter extends HResumeWriter {
       // $org_link = $experience->href;
       $from = $experience->dtstart;
       $to = $experience->dtend;
-print "IIIIII\n";
       $title = $this->translate_string($i18n_experience, 'title');
       $details = $this->translate_string($i18n_experience, 'details');
 
-      print("================ new position in $org_name ===================<br/>");
-
+      print("================ new position ===================<br/>");
       $section_term = get_term_by ('slug', $section, 'wp_resume_section', 'ARRAY_A');
 
       if (!$section_term) {
 	 exit('no section named '.$section.' found!<br/>');
       }
 
-      $org_term = get_term_by ('name', $org_name, 'wp_resume_organization', 'ARRAY_A');
-
-      if (!$org_term) {
-	 $org_term = $this->store_new_organization($i18n_experience);
-      }
+      $org_term = $this->store_new_organization($i18n_experience);
 
       global $_POST;
       $_POST=array(
@@ -100,31 +96,68 @@ print "IIIIII\n";
 	    );
 
       $postid = wp_insert_post( $_POST, true );
-      var_dump($postid);
-      print "<br/>";
-      var_dump($_POST);
-      print "<br/>";
+
+      // var_dump($postid);
+      // print "<br/>";
+      // var_dump($_POST);
+      // print "<br/>";
    }
 
    private function store_new_organization($i18n_experience) {
 
       // $org, $location, $website
       reset($i18n_experience);
-      $experience = key($i18n_experience);
-  
+      $experience = $i18n_experience[key($i18n_experience)];
+
       $website = $experience->href; // ONLY 1 SITE!
-      $org = $experience->orgName; // FIRST ORG USED AS SLUG AND NAME
+      // $org = $experience->orgName; // FIRST ORG USED AS SLUG AND NAME
+      $org = "lllll11";
       $location = $experience->location; // ONLY 1 LOCATION in wordpress 2 in linkein :(
 
+      if (!$website) { $website = 'www.google.com'; }
+      $org_term = get_term_by ('name', $org, 'wp_resume_organization', 'ARRAY_A');
+      if ($org_term) {
+	 return $org_term;
+      }
+
       global $_REQUEST;
+      global $_POST;
+      global $_GET;
+   
       $_REQUEST = array(
-	    'description'=> $location,
+	    // 'description'=> $location,
 	    'wp_resume_nonce' => wp_create_nonce('wp_resume_org_link' , 'wp_resume_nonce'),
+	    // 'org_link' => $website,
+	    // 'tag-name' => $org,
+	    // 'taxonomy' => 'wp_resume_organization',
+	    // 'post_type' => 'wp_resume_position',
+	    // 'action' => 'add-tag',
+	    // 'screen' => 'edit-wp_resume_organization',
+
+	    'action' => 'add-tag',
+	    'screen' => 'edit-wp_resume_organization',
+	    'taxonomy' => 'wp_resume_organization',
+	    'post_type' => 'wp_resume_position',
+	    '_wpnonce_add-tag' => wp_create_nonce('wp_resume_org_link' , 'wp_resume_nonce'),
+	    '_wp_http_referer' => '/blog/wp-admin/edit-tags.php?taxonomy=wp_resume_organization&post_type=wp_resume_position',
+	    'qtrans_term_it' => $org,
+	    'qtrans_term_en' => 'zzzz11',
+	    'tag-name' => $org,
+	    'slug' => '',
+	    'parent' => '-1',
+	    'description' => 'eeeee11',
+	    'org_link' => 'yyyyy11',
+
+
 	    );
-      // 'org_link' => $website,
 
       foreach ($i18n_experience as $experience) {
-	 $_REQUEST['qtrans_term_'.$experience->language] = $experience->name;
+	 // $_REQUEST['qtrans_term_'.$experience->getLang()] = $experience->orgName;
+      }
+      $_POST=$_REQUEST;
+      // $_POST=array();
+      foreach ($_GET as $i => $value) {
+	 unset($_GET[$i]);
       }
 
       $ret = wp_insert_term(
@@ -137,8 +170,7 @@ print "IIIIII\n";
       } else {
 	 print("Organization succesfully added [$org]</br>");
       }
-
-      set_org_link( $ret, $website );
+error("fine: $ret");
 
       var_dump($ret);
       print "<br/>";

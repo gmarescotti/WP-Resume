@@ -422,8 +422,6 @@ class WP_Resume extends Plugin_Boilerplate_v_1 {
 		foreach ($_POST as $k=>$p) {
 		   print "$k => $p<br/>";
 		}
-// print_r($_POST);
-exit("ciao");
 		return update_option( $slug, esc_url( $link ) );
 	}
 

@@ -226,7 +226,7 @@ class WP_Resume_Admin {
 	 * @since 1.2
 	 */
 	function ajax_add() {
-
+print "TTTTTTTTTTTTTTTTTTTTTTTTTT<br/>";
 		//pull the taxonomy type (section or organization) from the action query var
 		$type = substr($_GET['action'], 4);
 
@@ -870,7 +870,6 @@ class WP_Resume_Admin {
 
 		if ( !isset( $_REQUEST['wp_resume_nonce'] ) )
 			return;
-
 		wp_verify_nonce( 'wp_resume_org_link', $_REQUEST['wp_resume_nonce'] );
 
 		$tax = get_taxonomy( 'wp_resume_organization' );
@@ -880,6 +879,14 @@ class WP_Resume_Admin {
 
 		$this->parent->set_org_link( $termID, $_REQUEST['org_link'] );
 
+print "==== REQUEST ====<br/>";
+var_dump($_REQUEST);
+print "<br/>";
+print "==== POST ====<br/>";
+var_dump($_POST);
+print "==== GET ====<br/>";
+var_dump($_GET);
+// exit("ciao");
 	}
 
 
