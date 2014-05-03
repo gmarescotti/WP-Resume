@@ -226,7 +226,6 @@ class WP_Resume_Admin {
 	 * @since 1.2
 	 */
 	function ajax_add() {
-print "TTTTTTTTTTTTTTTTTTTTTTTTTT<br/>";
 		//pull the taxonomy type (section or organization) from the action query var
 		$type = substr($_GET['action'], 4);
 
@@ -603,15 +602,21 @@ print "TTTTTTTTTTTTTTTTTTTTTTTTTT<br/>";
 
 	   $user_options = $this->parent->options->get_user_options( (int) $current_author );
 
-	   store_experience_in_post(
-		'esperienze',
-		/* $org */ 3, 
-		/* $from */ 'January 2010', 
-		/* $to */ 'May 2014', 
-		/* $title */ '<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
-		/* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
-	   );
+	   // store_experience_in_post(
+	   //      'esperienze',
+	   //      /* $org */ 3, 
+	   //      /* $from */ 'January 2010', 
+	   //      /* $to */ 'May 2014', 
+	   //      /* $title */ '<!--:it-->Menelao Gicarao Software Pirlotten<!--:--><!--:en-->This is not Americaaaaa<!--:-->', 
+	   //      /* $details */ '<!--:it-->sviluppare un sistema infallibile per trovare un lavoro intelligente<!--:--><!--:en-->To develop a new innovative system to find a job<!--:-->'
+	   // );
 
+	   $hresume = new DOM_LINKEDIN();
+	   $writer = new WordpressHResumeWriter();
+
+	   $hresume->parse_hresume($writer);
+
+	   // ------------------------------------------------------------
 
 	   $user_options['linkedin_link1'] = wp_filter_nohtml_kses( $data['linkedin_link1'] );
 	   $user_options['linkedin_link2'] = wp_filter_nohtml_kses( $data['linkedin_link2'] );
@@ -879,14 +884,8 @@ print "TTTTTTTTTTTTTTTTTTTTTTTTTT<br/>";
 
 		$this->parent->set_org_link( $termID, $_REQUEST['org_link'] );
 
-print "==== REQUEST ====<br/>";
-var_dump($_REQUEST);
-print "<br/>";
-print "==== POST ====<br/>";
-var_dump($_POST);
-print "==== GET ====<br/>";
-var_dump($_GET);
-// exit("ciao");
+// print "========= BACKTRACE ========<br/>";
+// var_dump(debug_backtrace());
 	}
 
 

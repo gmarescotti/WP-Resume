@@ -21,10 +21,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 
    private function translate_string($i18n_experience, $param) {
       if (count($i18n_experience) == 1) {
-	 foreach($i18n_experience as $x) {print ")))))))) $x<br/>";};
-	 print "<br/>";
-	 reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
-	 return $i18n_experience[key($i18n_experience)];
+	 return reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
       }
       $ret = '';
       foreach ($i18n_experience as $exp) {
@@ -32,12 +29,6 @@ class WordpressHResumeWriter extends HResumeWriter {
       }
       return $ret;
    }
-
-   // public function merge_i18n_experience(Experience &$dest, Experience $src) {
-   //    foreach (array('title') as $key) {
-   //       $dest->$key .= translate_string($src->getLang(), $src->$key); 
-   //    }
-   // }
 
    // merge_languages_for_qtranslator_plugin
    public function upload() {
@@ -54,8 +45,12 @@ class WordpressHResumeWriter extends HResumeWriter {
       $table_section = array();
       $table_section['profile-experience']='experiences';
 
-      reset($i18n_experience); // GET FIRST EXPERIENE FROM ARRAY
-      $experience = $i18n_experience[key($i18n_experience)];
+      global $q_config;
+      if (isset($q_config)) {
+	 $experience = $i18n_experience[$q_config['default_language']];
+      } else {
+	 $experience = reset($i18n_experience);
+      }
 
       if (!array_key_exists($vcalendar_name, $table_section)) {
          exit ('Manca section: '.$vcalendar_name);
@@ -88,7 +83,7 @@ class WordpressHResumeWriter extends HResumeWriter {
 	    'comment_status' 		=> 'closed',
 	    'ping_status' 		=> 'closed',
 	    'from'			=> $from,
-	    'menu_order' 		=> $this->experience_index,
+	    'menu_order' 		=> $experience->getID(),
 	    'to'			=> $to,
 	    'wp_resume_section' 	=> (int)$section_term['term_id'],
 	    'wp_resume_organization' 	=> (int)$org_term['term_id'],
@@ -97,21 +92,19 @@ class WordpressHResumeWriter extends HResumeWriter {
 
       $postid = wp_insert_post( $_POST, true );
 
-      // var_dump($postid);
-      // print "<br/>";
-      // var_dump($_POST);
-      // print "<br/>";
    }
 
    private function store_new_organization($i18n_experience) {
 
-      // $org, $location, $website
-      reset($i18n_experience);
-      $experience = $i18n_experience[key($i18n_experience)];
+      global $q_config;
+      if (isset($q_config)) {
+	 $experience = $i18n_experience[$q_config['default_language']];
+      } else {
+	 $experience = reset($i18n_experience);
+      }
 
       $website = $experience->href; // ONLY 1 SITE!
-      // $org = $experience->orgName; // FIRST ORG USED AS SLUG AND NAME
-      $org = "lllll11";
+      $org = $experience->orgName; // FIRST ORG USED AS SLUG AND NAME
       $location = $experience->location; // ONLY 1 LOCATION in wordpress 2 in linkein :(
 
       if (!$website) { $website = 'www.google.com'; }
@@ -120,60 +113,41 @@ class WordpressHResumeWriter extends HResumeWriter {
 	 return $org_term;
       }
 
-      global $_REQUEST;
-      global $_POST;
-      global $_GET;
-   
-      $_REQUEST = array(
-	    // 'description'=> $location,
+      $_POST = array(
+	    'description'=> $location,
 	    'wp_resume_nonce' => wp_create_nonce('wp_resume_org_link' , 'wp_resume_nonce'),
-	    // 'org_link' => $website,
-	    // 'tag-name' => $org,
-	    // 'taxonomy' => 'wp_resume_organization',
-	    // 'post_type' => 'wp_resume_position',
-	    // 'action' => 'add-tag',
-	    // 'screen' => 'edit-wp_resume_organization',
-
+	    'org_link' => $website,
 	    'action' => 'add-tag',
 	    'screen' => 'edit-wp_resume_organization',
 	    'taxonomy' => 'wp_resume_organization',
 	    'post_type' => 'wp_resume_position',
 	    '_wpnonce_add-tag' => wp_create_nonce('wp_resume_org_link' , 'wp_resume_nonce'),
 	    '_wp_http_referer' => '/blog/wp-admin/edit-tags.php?taxonomy=wp_resume_organization&post_type=wp_resume_position',
-	    'qtrans_term_it' => $org,
-	    'qtrans_term_en' => 'zzzz11',
 	    'tag-name' => $org,
 	    'slug' => '',
 	    'parent' => '-1',
-	    'description' => 'eeeee11',
-	    'org_link' => 'yyyyy11',
-
-
 	    );
 
       foreach ($i18n_experience as $experience) {
-	 // $_REQUEST['qtrans_term_'.$experience->getLang()] = $experience->orgName;
-      }
-      $_POST=$_REQUEST;
-      // $_POST=array();
-      foreach ($_GET as $i => $value) {
-	 unset($_GET[$i]);
+	 $_POST['qtrans_term_'.$experience->getLang()] = $experience->orgName;
       }
 
       $ret = wp_insert_term(
 	    $org,
 	    'wp_resume_organization',
-	    $_REQUEST
-	    );
-      if (!$ret) {
-	 error("Organization failed [$org]</br>");
-      } else {
-	 print("Organization succesfully added [$org]</br>");
-      }
-error("fine: $ret");
+	    $_POST
+	 );
 
-      var_dump($ret);
-      print "<br/>";
+      if (!$ret) {
+	 var_dump($ret);
+	 print "<br/>";
+	 error("Organization failed [$org]: $ret</br>");
+      } else {
+	 print("Organization succesfully added [$org] ".$ret[0]."</br>");
+      }
+
+      qtrans_updateTermLibrary();
+
       return $ret;
    }
 
